@@ -1,0 +1,14 @@
+[package]
+name = "uniwhat"
+version = "0.1.0"
+authors = ["Rory McCann <rory@technomancy.org>"]
+description = "Display the unicode characters text"
+edition = "2018"
+license = "AGPL-3.0+"
+keywords = ["unicode", "text"]
+
+categories = ["command-line-utilities", "text-processing"]
+
+
+[dependencies]
+unic-ucd-name = "0.9.0"
