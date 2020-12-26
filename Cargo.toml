@@ -6,6 +6,7 @@ description = "Display the unicode characters text"
 edition = "2018"
 license = "AGPL-3.0+"
 keywords = ["unicode", "text"]
+repository = "https://git.sr.ht/~ebel/uniwhat"
 
 categories = ["command-line-utilities", "text-processing"]
 
