@@ -116,7 +116,7 @@ fn format_output(
             format_column(col, text, output)?;
             first = false;
         }
-        write!(output, "\n")?;
+        writeln!(output)?;
     }
     Ok(())
 }
