@@ -1,6 +1,10 @@
 # uniwhat changelog
 
-## v0.1.1rc1 (2021-02-17)
+## v0.2 (2021-11-09)
+
+ * New feature: If command line argument are passed to `uniwhat`, those will be printed instead of stdin.
+
+## v0.1.1 (2021-02-17)
 
  * Dummy release to update crates.io
 
