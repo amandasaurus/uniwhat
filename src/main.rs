@@ -82,10 +82,28 @@ fn main() -> Result<()> {
         Column::Name,
     ];
 
-    let mut stdin = StdinChars::new();
+    let args = std::env::args();
+
+    let mut input: Box<dyn Iterator<Item = char>> = if args.len() > 1 {
+        // Convert the argv to an interator of chars
+        let mut input = Vec::new();
+        for (i, arg) in args.into_iter().skip(1).enumerate() {
+            // add a space between args
+            if i != 0 {
+                input.push(' ');
+            }
+
+            input.extend(arg.chars());
+        }
+
+        Box::new(input.into_iter())
+    } else {
+        // No argv → use stdin
+        Box::new(StdinChars::new())
+    };
     let mut stdout = std::io::stdout();
 
-    format_output(cols, &mut stdin, &mut stdout)?;
+    format_output(cols, &mut input, &mut stdout)?;
 
     Ok(())
 }
@@ -218,7 +236,6 @@ fn columns_for_char(c: char, columns: &[Column], char_idx: usize, byte_idx: usiz
                     .map(|b| format!("{:02X}", b))
                     .collect::<Vec<String>>()
                     .join(" ")
-
             }
             Column::Glyph => format!("{}", c.escape_debug()),
             Column::Name => unicode_name(c),
