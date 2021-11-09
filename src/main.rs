@@ -211,15 +211,14 @@ fn columns_for_char(c: char, columns: &[Column], char_idx: usize, byte_idx: usiz
             Column::Utf8Bytes => {
                 let mut utf8_bytes = vec![0; 6];
                 c.encode_utf8(&mut utf8_bytes);
-                format!(
-                    "{}",
-                    utf8_bytes
-                        .iter()
-                        .take(c.len_utf8())
-                        .map(|b| format!("{:02X}", b))
-                        .collect::<Vec<String>>()
-                        .join(" ")
-                )
+
+                utf8_bytes
+                    .iter()
+                    .take(c.len_utf8())
+                    .map(|b| format!("{:02X}", b))
+                    .collect::<Vec<String>>()
+                    .join(" ")
+
             }
             Column::Glyph => format!("{}", c.escape_debug()),
             Column::Name => unicode_name(c),
