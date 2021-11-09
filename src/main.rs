@@ -1,6 +1,6 @@
 extern crate unic_ucd_name;
 
-use std::io::{Write, Stdin};
+use std::io::{Stdin, Write};
 use unic_ucd_name::Name;
 
 type Result<T> = std::result::Result<T, std::io::Error>;
@@ -8,7 +8,6 @@ type Result<T> = std::result::Result<T, std::io::Error>;
 /// What type of columns there are
 #[derive(Debug)]
 enum Column {
-    
     /// Index of this character from the start (0)
     CharacterIndex,
 
@@ -22,8 +21,8 @@ enum Column {
     /// The Glyph
     Glyph,
 
-    /// Unicode name 
-    Name
+    /// Unicode name
+    Name,
 }
 
 impl std::fmt::Display for Column {
@@ -41,7 +40,11 @@ struct StdinChars {
 
 impl StdinChars {
     fn new() -> Self {
-        StdinChars{ stdin: std::io::stdin(), buf: vec![], finished: false }
+        StdinChars {
+            stdin: std::io::stdin(),
+            buf: vec![],
+            finished: false,
+        }
     }
 }
 
@@ -95,11 +98,14 @@ fn format_column(col: &Column, text: &str, output: &mut impl Write) -> Result<()
         Column::Glyph => write!(output, "{:^8}", text),
 
         _ => write!(output, "{}", text),
-
     }
 }
 
-fn format_output(columns: &[Column], input: &mut impl Iterator<Item=char>, output: &mut impl Write) -> Result<()> {
+fn format_output(
+    columns: &[Column],
+    input: &mut impl Iterator<Item = char>,
+    output: &mut impl Write,
+) -> Result<()> {
     let mut first;
     for line in lines_for_input(columns, input) {
         first = true;
@@ -115,8 +121,10 @@ fn format_output(columns: &[Column], input: &mut impl Iterator<Item=char>, outpu
     Ok(())
 }
 
-
-fn lines_for_input<'a>(columns: &'a [Column], input: &'a mut impl Iterator<Item=char>) -> impl Iterator<Item=Vec<String>> + 'a {
+fn lines_for_input<'a>(
+    columns: &'a [Column],
+    input: &'a mut impl Iterator<Item = char>,
+) -> impl Iterator<Item = Vec<String>> + 'a {
     let mut byte_index = 0;
 
     input.enumerate().flat_map(move |(char_index, c)| {
@@ -131,16 +139,18 @@ fn lines_for_input<'a>(columns: &'a [Column], input: &'a mut impl Iterator<Item=
 }
 
 fn headers(columns: &[Column]) -> Vec<String> {
-    columns.iter().map(|c|
-        match c {
+    columns
+        .iter()
+        .map(|c| match c {
             Column::CharacterIndex => "character",
             Column::ByteIndex => "byte",
             Column::Utf32 => "UTF-32",
             Column::Utf8Bytes => "encoded as",
             Column::Glyph => "glyph",
             Column::Name => "name",
-        }
-    ).map(|s| s.to_string()).collect()
+        })
+        .map(|s| s.to_string())
+        .collect()
 }
 
 fn unicode_name(c: char) -> String {
@@ -183,25 +193,38 @@ fn unicode_name(c: char) -> String {
         };
         s.to_string()
     } else {
-        Name::of(c).map(|n| n.to_string()).unwrap_or_else(|| "NAME UNKNOWN".to_string())
+        Name::of(c)
+            .map(|n| n.to_string())
+            .unwrap_or_else(|| "NAME UNKNOWN".to_string())
     }
 }
 
 fn columns_for_char(c: char, columns: &[Column], char_idx: usize, byte_idx: usize) -> Vec<String> {
     let mut utf8_bytes = vec![0; 6];
     c.encode_utf8(&mut utf8_bytes);
-    columns.iter().map(|col| match col {
-        Column::CharacterIndex => format!("{}", char_idx),
-        Column::ByteIndex => format!("{}", byte_idx),
-        Column::Utf32 => format!("{:<06X}", c as u32),
-        Column::Utf8Bytes => {
-            let mut utf8_bytes = vec![0; 6];
-            c.encode_utf8(&mut utf8_bytes);
-            format!("{}", utf8_bytes.iter().take(c.len_utf8()).map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join(" "))
-        },
-        Column::Glyph => format!("{}", c.escape_debug()),
-        Column::Name => unicode_name(c),
-    }).collect()
+    columns
+        .iter()
+        .map(|col| match col {
+            Column::CharacterIndex => format!("{}", char_idx),
+            Column::ByteIndex => format!("{}", byte_idx),
+            Column::Utf32 => format!("{:<06X}", c as u32),
+            Column::Utf8Bytes => {
+                let mut utf8_bytes = vec![0; 6];
+                c.encode_utf8(&mut utf8_bytes);
+                format!(
+                    "{}",
+                    utf8_bytes
+                        .iter()
+                        .take(c.len_utf8())
+                        .map(|b| format!("{:02X}", b))
+                        .collect::<Vec<String>>()
+                        .join(" ")
+                )
+            }
+            Column::Glyph => format!("{}", c.escape_debug()),
+            Column::Name => unicode_name(c),
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -215,71 +238,183 @@ mod tests {
     #[test]
     fn test_empty() {
         assert_eq!(str_to_lines("", &[]), vec![] as Vec<Vec<String>>);
-        assert_eq!(str_to_lines("", &[Column::Name]), vec![] as Vec<Vec<String>>);
+        assert_eq!(
+            str_to_lines("", &[Column::Name]),
+            vec![] as Vec<Vec<String>>
+        );
     }
 
     #[test]
     fn test_single1() {
-        assert_eq!(columns_for_char('a', &[Column::Utf32, Column::Utf8Bytes, Column::Glyph, Column::Name], 0, 0),
-            vec![
-                "000061", "61", "a",
-                "LATIN SMALL LETTER A"
-            ]);
+        assert_eq!(
+            columns_for_char(
+                'a',
+                &[
+                    Column::Utf32,
+                    Column::Utf8Bytes,
+                    Column::Glyph,
+                    Column::Name
+                ],
+                0,
+                0
+            ),
+            vec!["000061", "61", "a", "LATIN SMALL LETTER A"]
+        );
 
-        assert_eq!(columns_for_char('ä', &[Column::Utf32, Column::Utf8Bytes, Column::Glyph, Column::Name], 0, 0),
+        assert_eq!(
+            columns_for_char(
+                'ä',
+                &[
+                    Column::Utf32,
+                    Column::Utf8Bytes,
+                    Column::Glyph,
+                    Column::Name
+                ],
+                0,
+                0
+            ),
             vec![
-                "0000E4", "C3 A4", "ä",
+                "0000E4",
+                "C3 A4",
+                "ä",
                 "LATIN SMALL LETTER A WITH DIAERESIS"
-            ]);
+            ]
+        );
 
-        assert_eq!(columns_for_char('→', &[Column::Utf32, Column::Utf8Bytes, Column::Glyph, Column::Name], 0, 0),
-            vec![
-                "002192", "E2 86 92", "→",
-                "RIGHTWARDS ARROW"
-            ]);
+        assert_eq!(
+            columns_for_char(
+                '→',
+                &[
+                    Column::Utf32,
+                    Column::Utf8Bytes,
+                    Column::Glyph,
+                    Column::Name
+                ],
+                0,
+                0
+            ),
+            vec!["002192", "E2 86 92", "→", "RIGHTWARDS ARROW"]
+        );
 
-        assert_eq!(columns_for_char('\n', &[Column::Utf32, Column::Utf8Bytes, Column::Name], 0, 0),
-            vec![
-                "00000A", "0A", "LINE FEED (LF)"
-            ]);
-
+        assert_eq!(
+            columns_for_char(
+                '\n',
+                &[Column::Utf32, Column::Utf8Bytes, Column::Name],
+                0,
+                0
+            ),
+            vec!["00000A", "0A", "LINE FEED (LF)"]
+        );
     }
 
     #[test]
     fn test_many1() {
-        assert_eq!(str_to_lines("a", &[Column::CharacterIndex, Column::ByteIndex, Column::Utf32, Column::Utf8Bytes, Column::Glyph, Column::Name]),
+        assert_eq!(
+            str_to_lines(
+                "a",
+                &[
+                    Column::CharacterIndex,
+                    Column::ByteIndex,
+                    Column::Utf32,
+                    Column::Utf8Bytes,
+                    Column::Glyph,
+                    Column::Name
+                ]
+            ),
             vec![
                 vec!["character", "byte", "UTF-32", "encoded as", "glyph", "name"],
                 vec!["0", "0", "000061", "61", "a", "LATIN SMALL LETTER A"],
-            ]);
+            ]
+        );
 
-        assert_eq!(str_to_lines("abc", &[Column::CharacterIndex, Column::ByteIndex, Column::Utf32, Column::Utf8Bytes, Column::Glyph, Column::Name]),
+        assert_eq!(
+            str_to_lines(
+                "abc",
+                &[
+                    Column::CharacterIndex,
+                    Column::ByteIndex,
+                    Column::Utf32,
+                    Column::Utf8Bytes,
+                    Column::Glyph,
+                    Column::Name
+                ]
+            ),
             vec![
                 vec!["character", "byte", "UTF-32", "encoded as", "glyph", "name"],
                 vec!["0", "0", "000061", "61", "a", "LATIN SMALL LETTER A"],
                 vec!["1", "1", "000062", "62", "b", "LATIN SMALL LETTER B"],
                 vec!["2", "2", "000063", "63", "c", "LATIN SMALL LETTER C"],
-            ]);
+            ]
+        );
 
-        assert_eq!(str_to_lines("🙂🙂", &[Column::CharacterIndex, Column::ByteIndex, Column::Utf32, Column::Utf8Bytes, Column::Glyph, Column::Name]),
+        assert_eq!(
+            str_to_lines(
+                "🙂🙂",
+                &[
+                    Column::CharacterIndex,
+                    Column::ByteIndex,
+                    Column::Utf32,
+                    Column::Utf8Bytes,
+                    Column::Glyph,
+                    Column::Name
+                ]
+            ),
             vec![
                 vec!["character", "byte", "UTF-32", "encoded as", "glyph", "name"],
-                vec!["0", "0", "01F642", "F0 9F 99 82", "🙂", "SLIGHTLY SMILING FACE"],
-                vec!["1", "4", "01F642", "F0 9F 99 82", "🙂", "SLIGHTLY SMILING FACE"],
-            ]);
+                vec![
+                    "0",
+                    "0",
+                    "01F642",
+                    "F0 9F 99 82",
+                    "🙂",
+                    "SLIGHTLY SMILING FACE"
+                ],
+                vec![
+                    "1",
+                    "4",
+                    "01F642",
+                    "F0 9F 99 82",
+                    "🙂",
+                    "SLIGHTLY SMILING FACE"
+                ],
+            ]
+        );
 
-        assert_eq!(str_to_lines("🏳️‍🌈\n", &[Column::CharacterIndex, Column::ByteIndex, Column::Utf32, Column::Utf8Bytes, Column::Glyph, Column::Name]),
-
-
+        assert_eq!(
+            str_to_lines(
+                "🏳️‍🌈\n",
+                &[
+                    Column::CharacterIndex,
+                    Column::ByteIndex,
+                    Column::Utf32,
+                    Column::Utf8Bytes,
+                    Column::Glyph,
+                    Column::Name
+                ]
+            ),
             vec![
                 vec!["character", "byte", "UTF-32", "encoded as", "glyph", "name"],
                 vec!["0", "0", "01F3F3", "F0 9F 8F B3", "🏳", "WAVING WHITE FLAG"],
-                vec!["1", "4", "00FE0F", "EF B8 8F", "\\u{fe0f}", "VARIATION SELECTOR-16"],
-                vec!["2", "7", "00200D", "E2 80 8D", "\\u{200d}", "ZERO WIDTH JOINER"],
+                vec![
+                    "1",
+                    "4",
+                    "00FE0F",
+                    "EF B8 8F",
+                    "\\u{fe0f}",
+                    "VARIATION SELECTOR-16"
+                ],
+                vec![
+                    "2",
+                    "7",
+                    "00200D",
+                    "E2 80 8D",
+                    "\\u{200d}",
+                    "ZERO WIDTH JOINER"
+                ],
                 vec!["3", "10", "01F308", "F0 9F 8C 88", "🌈", "RAINBOW"],
                 vec!["4", "14", "00000A", "0A", "\\n", "LINE FEED (LF)"],
-            ]);
-
+            ]
+        );
     }
 
     #[test]
@@ -287,12 +422,15 @@ mod tests {
         let input = "a";
         let mut output = Vec::new();
 
-        format_output(&[Column::CharacterIndex, Column::Name], &mut input.chars(), &mut output).unwrap();
+        format_output(
+            &[Column::CharacterIndex, Column::Name],
+            &mut input.chars(),
+            &mut output,
+        )
+        .unwrap();
         assert_eq!(
             String::from_utf8(output).unwrap(),
             "character  name\n        0  LATIN SMALL LETTER A\n"
         );
     }
-
-
 }
